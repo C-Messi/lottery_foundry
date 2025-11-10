@@ -6,12 +6,12 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@chainlink/contracts/src/v0.8/vrf/VRFConsumerBase.sol";
 import "./interfaces/IRandomNumberGenerator.sol";
-import "./interfaces/IPopLottery.sol";
+import "./interfaces/IPoqLottery.sol";
 
 contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, Ownable {
     using SafeERC20 for IERC20;
 
-    address public popLottery;
+    address public poqLottery;
     bytes32 public keyHash;
     bytes32 public latestRequestId;
     uint32 public randomResult;
@@ -34,7 +34,7 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, Ownab
      * @notice Request randomness from a user-provided seed
      */
     function getRandomNumber() external override {
-        require(msg.sender == popLottery, "Only PancakeSwapLottery");
+        require(msg.sender == poqLottery, "Only PancakeSwapLottery");
         require(keyHash != bytes32(0), "Must have valid key hash");
         require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK tokens");
 
@@ -58,11 +58,11 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, Ownab
     }
 
     /**
-     * @notice Set the address for the PancakeSwapLottery
-     * @param _pancakeSwapLottery: address of the PancakeSwap lottery
+     * @notice Set the address for the PoqLottery
+     * @param _poqLottery: address of the  Poqlottery
      */
-    function setLotteryAddress(address _pancakeSwapLottery) external onlyOwner {
-        popLottery = _pancakeSwapLottery;
+    function setLotteryAddress(address _poqLottery) external onlyOwner {
+        poqLottery = _poqLottery;
     }
 
     /**
@@ -95,6 +95,6 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, Ownab
     function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
         require(latestRequestId == requestId, "Wrong requestId");
         randomResult = uint32(1000000 + (randomness % 1000000));
-        latestLotteryId = IPopLottery(popLottery).viewCurrentLotteryId();
+        latestLotteryId = IPoqLottery(poqLottery).viewCurrentLotteryId();
     }
 }

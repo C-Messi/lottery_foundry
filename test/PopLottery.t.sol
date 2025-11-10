@@ -2,13 +2,13 @@
 pragma solidity ^0.8.13;
 
 import {Test} from "forge-std/Test.sol";
-import {PopLottery} from "../src/PopLottery.sol";
+import {PoqLottery} from "../src/PoqLottery.sol";
 import {MockERC20} from "../src/utils/MockERC20.sol";
 import {MockRandomNumberGenerator} from "../src/utils/MockRandomNumberGenerator.sol";
 
 contract PopLotteryTest is Test {
-    PopLottery public popLottery;
-    MockERC20 public popToken;
+    PoqLottery public poqLottery;
+    MockERC20 public poqToken;
     MockRandomNumberGenerator public mockRandomGenerator;
 
     // Test accounts
@@ -39,27 +39,27 @@ contract PopLotteryTest is Test {
 
         // Deploy mock contracts
 		vm.prank(owner);
-        popToken = new MockERC20("PopToken", "POP", 100_000_000 * 1e18);
+        poqToken = new MockERC20("PopToken", "POP", 100_000_000 * 1e18);
 		vm.prank(owner);
         mockRandomGenerator = new MockRandomNumberGenerator();
 
-        // Deploy PopLottery contract
+        // Deploy PoqLottery contract
         vm.prank(owner);
-        popLottery = new PopLottery(address(popToken), address(mockRandomGenerator));
+        poqLottery = new PoqLottery(address(poqToken), address(mockRandomGenerator));
 
         // Set operator, treasury, and injector addresses
         vm.prank(owner);
-        popLottery.setOperatorAndTreasuryAndInjectorAddresses(operator, treasury, injector);
+        poqLottery.setOperatorAndTreasuryAndInjectorAddresses(operator, treasury, injector);
 
         // Mint tokens to users for testing
-		vm.prank(address(popToken));
-        popToken.mintTokens(10000 * 1e18);
-        vm.prank(address(popToken));
-        popToken.transfer(user1, 1000 * 1e18);
-        vm.prank(address(popToken));
-        popToken.transfer(user2, 1000 * 1e18);
-        vm.prank(address(popToken));
-        popToken.transfer(user3, 1000 * 1e18);
+		vm.prank(address(poqToken));
+        poqToken.mintTokens(10000 * 1e18);
+        vm.prank(address(poqToken));
+        poqToken.transfer(user1, 1000 * 1e18);
+        vm.prank(address(poqToken));
+        poqToken.transfer(user2, 1000 * 1e18);
+        vm.prank(address(poqToken));
+        poqToken.transfer(user3, 1000 * 1e18);
 
         // Set lottery end time to 1 day from now
         endTime = block.timestamp + 1 days;
@@ -70,13 +70,13 @@ contract PopLotteryTest is Test {
         
         // Set the lottery address in the mock generator
         vm.prank(owner);
-        mockRandomGenerator.setLotteryAddress(address(popLottery));
+        mockRandomGenerator.setLotteryAddress(address(poqLottery));
     }
 
     function test_Constructor() public view {
-        assertEq(address(popLottery.popToken()), address(popToken));
-        assertEq(address(popLottery.randomGenerator()), address(mockRandomGenerator));
+        assertEq(address(poqLottery.poqToken()), address(poqToken));
+        assertEq(address(poqLottery.randomGenerator()), address(mockRandomGenerator));
     }
 
-	
+
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0;
 
-interface IPopLottery {
+interface IPoqLottery {
     /**
      * @notice Buy tickets for the current lottery
      * @param _lotteryId: lotteryId

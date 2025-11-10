@@ -3,12 +3,12 @@ pragma solidity ^0.8.13;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {PopLottery} from "../src/PopLottery.sol";
+import {PoqLottery} from "../src/PoqLottery.sol";
 import {MockERC20} from "../src/utils/MockERC20.sol";
 import {RandomNumberGenerator} from "../src/RandomNumberGenerator.sol";
 
 contract BscTestnetDeployer is Script {
-    PopLottery public popLottery;
+    PoqLottery public popLottery;
     MockERC20 public popToken;
     RandomNumberGenerator public randomNumberGenerator;
 
@@ -59,10 +59,10 @@ contract BscTestnetDeployer is Script {
         randomNumberGenerator = new RandomNumberGenerator(CHAINLINK_VRF_COORDINATOR, CHAINLINK_LINK_TOKEN);
         console.log("Random Number Generator deployed at: %s", address(randomNumberGenerator));
 
-        // Deploy PopLottery contract
-        console.log("Deploying PopLottery contract...");
-        popLottery = new PopLottery(address(popToken), address(randomNumberGenerator));
-        console.log("PopLottery deployed at: %s", address(popLottery));
+        // Deploy PoqLottery contract
+        console.log("Deploying PoqLottery contract...");
+        popLottery = new PoqLottery(address(popToken), address(randomNumberGenerator));
+        console.log("PoqLottery deployed at: %s", address(popLottery));
 
         // Set operator, treasury, and injector addresses
         console.log("Setting operator, treasury, and injector addresses...");
@@ -91,7 +91,7 @@ contract BscTestnetDeployer is Script {
         console.log("Deployer Address: %s", msg.sender);
         console.log("POP Token Address: %s", address(popToken));
         console.log("Random Number Generator Address: %s", address(randomNumberGenerator));
-        console.log("PopLottery Address: %s", address(popLottery));
+        console.log("PoqLottery Address: %s", address(popLottery));
         console.log("Operator Address: %s", operatorAddress);
         console.log("Treasury Address: %s", treasuryAddress);
         console.log("Injector Address: %s", injectorAddress);
