@@ -48,15 +48,15 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
         Status status;
         uint256 startTime;
         uint256 endTime;
-        uint256 priceTicketInCake;
+        uint256 priceTicketInPop;
         uint256 discountDivisor;
         uint256[6] rewardsBreakdown; // 0: 1 matching number // 5: 6 matching numbers
         uint256 treasuryFee; // 500: 5% // 200: 2% // 50: 0.5%
-        uint256[6] cakePerBracket;
+        uint256[6] PopPerBracket;
         uint256[6] countWinnersPerBracket;
         uint256 firstTicketId;
         uint256 firstTicketIdNextLottery;
-        uint256 amountCollectedInCake;
+        uint256 amountCollectedInPop;
         uint32 finalNumber;
     }
 
@@ -101,7 +101,7 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
         uint256 indexed lotteryId,
         uint256 startTime,
         uint256 endTime,
-        uint256 priceTicketInCake,
+        uint256 priceTicketInPop,
         uint256 firstTicketId,
         uint256 injectedAmount
     );
@@ -114,7 +114,7 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
     /**
      * @notice Constructor
      * @dev RandomNumberGenerator must be deployed prior to this contract
-     * @param _popTokenAddress: address of the CAKE token
+     * @param _popTokenAddress: address of the Pop token
      * @param _randomGeneratorAddress: address of the RandomGenerator contract used to work with ChainLink VRF
      */
     constructor(address _popTokenAddress, address _randomGeneratorAddress) Ownable(msg.sender) {
@@ -148,10 +148,10 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
         require(_lotteries[_lotteryId].status == Status.Open, "Lottery is not open");
         require(block.timestamp < _lotteries[_lotteryId].endTime, "Lottery is over");
 
-        // Calculate number of CAKE to this contract
+        // Calculate number of Pop to this contract
         uint256 amountCakeToTransfer = _calculateTotalPriceForBulkTickets(
             _lotteries[_lotteryId].discountDivisor,
-            _lotteries[_lotteryId].priceTicketInCake,
+            _lotteries[_lotteryId].priceTicketInPop,
             _ticketNumbers.length
         );
 
@@ -159,7 +159,7 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
         popToken.safeTransferFrom(address(msg.sender), address(this), amountCakeToTransfer);
 
         // Increment the total amount collected for the lottery round
-        _lotteries[_lotteryId].amountCollectedInCake += amountCakeToTransfer;
+        _lotteries[_lotteryId].amountCollectedInPop += amountCakeToTransfer;
 
         for (uint256 i = 0; i < _ticketNumbers.length; i++) {
             uint32 thisTicketNumber = _ticketNumbers[i];
@@ -221,6 +221,7 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
             // Check user is claiming the correct bracket
             require(rewardForTicketId != 0, "No prize for this bracket");
 
+			// avoid to get low-level rewards
             if (_brackets[i] != 5) {
                 require(
                     _calculateRewardsForTicketId(_lotteryId, thisTicketId, _brackets[i] + 1) == 0,
@@ -249,7 +250,8 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
         _lotteries[_lotteryId].firstTicketIdNextLottery = currentTicketId;
 
         // Request a random number from the generator based on a seed
-        randomGenerator.getRandomNumber(uint256(keccak256(abi.encodePacked(_lotteryId, currentTicketId))));
+        // randomGenerator.getRandomNumber(uint256(keccak256(abi.encodePacked(_lotteryId, currentTicketId))));
+        randomGenerator.getRandomNumber();
 
         _lotteries[_lotteryId].status = Status.Close;
 
@@ -257,7 +259,7 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
     }
 
     /**
-     * @notice Draw the final number, calculate reward in CAKE per group, and make lottery claimable
+     * @notice Draw the final number, calculate reward in Pop per group, and make lottery claimable
      * @param _lotteryId: lottery id
      * @param _autoInjection: reinjects funds into next lottery (vs. withdrawing all)
      * @dev Callable by operator
@@ -279,13 +281,13 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
 
         // Calculate the amount to share post-treasury fee
         uint256 amountToShareToWinners = (
-            ((_lotteries[_lotteryId].amountCollectedInCake) * (10000 - _lotteries[_lotteryId].treasuryFee))
+            ((_lotteries[_lotteryId].amountCollectedInPop) * (10000 - _lotteries[_lotteryId].treasuryFee))
         ) / 10000;
 
         // Initializes the amount to withdraw to treasury
         uint256 amountToWithdrawToTreasury;
 
-        // Calculate prizes in CAKE for each bracket by starting from the highest one
+        // Calculate prizes in Pop for each bracket by starting from the highest one
         for (uint32 i = 0; i < 6; i++) {
             uint32 j = 5 - i;
             uint32 transformedWinningNumber = _bracketCalculator[j] + (finalNumber % (uint32(10)**(j + 1)));
@@ -301,7 +303,7 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
             ) {
                 // B. If rewards at this bracket are > 0, calculate, else, report the numberAddresses from previous bracket
                 if (_lotteries[_lotteryId].rewardsBreakdown[j] != 0) {
-                    _lotteries[_lotteryId].cakePerBracket[j] =
+                    _lotteries[_lotteryId].PopPerBracket[j] =
                         ((_lotteries[_lotteryId].rewardsBreakdown[j] * amountToShareToWinners) /
                             (_numberTicketsPerLotteryId[_lotteryId][transformedWinningNumber] -
                                 numberAddressesInPreviousBracket)) /
@@ -310,9 +312,9 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
                     // Update numberAddressesInPreviousBracket
                     numberAddressesInPreviousBracket = _numberTicketsPerLotteryId[_lotteryId][transformedWinningNumber];
                 }
-                // A. No CAKE to distribute, they are added to the amount to withdraw to treasury address
+                // A. No Pop to distribute, they are added to the amount to withdraw to treasury address
             } else {
-                _lotteries[_lotteryId].cakePerBracket[j] = 0;
+                _lotteries[_lotteryId].PopPerBracket[j] = 0;
 
                 amountToWithdrawToTreasury +=
                     (_lotteries[_lotteryId].rewardsBreakdown[j] * amountToShareToWinners) /
@@ -329,9 +331,10 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
             amountToWithdrawToTreasury = 0;
         }
 
-        amountToWithdrawToTreasury += (_lotteries[_lotteryId].amountCollectedInCake - amountToShareToWinners);
+		// Add fees
+        amountToWithdrawToTreasury += (_lotteries[_lotteryId].amountCollectedInPop - amountToShareToWinners);
 
-        // Transfer CAKE to treasury address
+        // Transfer Pop to treasury address
         popToken.safeTransfer(treasuryAddress, amountToWithdrawToTreasury);
 
         emit LotteryNumberDrawn(currentLotteryId, finalNumber, numberAddressesInPreviousBracket);
@@ -351,9 +354,7 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
         );
 
         // Request a random number from the generator based on a seed
-        IRandomNumberGenerator(_randomGeneratorAddress).getRandomNumber(
-            uint256(keccak256(abi.encodePacked(currentLotteryId, currentTicketId)))
-        );
+        IRandomNumberGenerator(_randomGeneratorAddress).getRandomNumber();
 
         // Calculate the finalNumber based on the randomResult generated by ChainLink's fallback
         IRandomNumberGenerator(_randomGeneratorAddress).viewRandomResult();
@@ -366,14 +367,14 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
     /**
      * @notice Inject funds
      * @param _lotteryId: lottery id
-     * @param _amount: amount to inject in CAKE token
+     * @param _amount: amount to inject in Pop token
      * @dev Callable by owner or injector address
      */
     function injectFunds(uint256 _lotteryId, uint256 _amount) external override onlyOwnerOrInjector {
         require(_lotteries[_lotteryId].status == Status.Open, "Lottery not open");
 
         popToken.safeTransferFrom(address(msg.sender), address(this), _amount);
-        _lotteries[_lotteryId].amountCollectedInCake += _amount;
+        _lotteries[_lotteryId].amountCollectedInPop += _amount;
 
         emit LotteryInjection(_lotteryId, _amount);
     }
@@ -382,7 +383,7 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
      * @notice Start the lottery
      * @dev Callable by operator
      * @param _endTime: endTime of the lottery
-     * @param _priceTicketInCake: price of a ticket in CAKE
+     * @param _priceTicketInCake: price of a ticket in Pop
      * @param _discountDivisor: the divisor to calculate the discount magnitude for bulks
      * @param _rewardsBreakdown: breakdown of rewards per bracket (must sum to 10,000)
      * @param _treasuryFee: treasury fee (10,000 = 100%, 100 = 1%)
@@ -428,15 +429,15 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
             status: Status.Open,
             startTime: block.timestamp,
             endTime: _endTime,
-            priceTicketInCake: _priceTicketInCake,
+            priceTicketInPop: _priceTicketInCake,
             discountDivisor: _discountDivisor,
             rewardsBreakdown: _rewardsBreakdown,
             treasuryFee: _treasuryFee,
-            cakePerBracket: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
+            PopPerBracket: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
             countWinnersPerBracket: [uint256(0), uint256(0), uint256(0), uint256(0), uint256(0), uint256(0)],
             firstTicketId: currentTicketId,
             firstTicketIdNextLottery: currentTicketId,
-            amountCollectedInCake: pendingInjectionNextLottery,
+            amountCollectedInPop: pendingInjectionNextLottery,
             finalNumber: 0
         });
 
@@ -459,7 +460,7 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
      * @dev Only callable by owner.
      */
     function recoverWrongTokens(address _tokenAddress, uint256 _tokenAmount) external onlyOwner {
-        require(_tokenAddress != address(popToken), "Cannot be CAKE token");
+        require(_tokenAddress != address(popToken), "Cannot be Pop token");
 
         IERC20(_tokenAddress).safeTransfer(address(msg.sender), _tokenAmount);
 
@@ -467,10 +468,10 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
     }
 
     /**
-     * @notice Set CAKE price ticket upper/lower limit
+     * @notice Set Pop price ticket upper/lower limit
      * @dev Only callable by owner
-     * @param _minPriceTicketInCake: minimum price of a ticket in CAKE
-     * @param _maxPriceTicketInCake: maximum price of a ticket in CAKE
+     * @param _minPriceTicketInCake: minimum price of a ticket in Pop
+     * @param _maxPriceTicketInCake: maximum price of a ticket in Pop
      */
     function setMinAndMaxTicketPriceInCake(uint256 _minPriceTicketInCake, uint256 _maxPriceTicketInCake)
         external
@@ -517,7 +518,7 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
     /**
      * @notice Calculate price of a set of tickets
      * @param _discountDivisor: divisor for the discount
-     * @param _priceTicket price of a ticket (in CAKE)
+     * @param _priceTicket price of a ticket (in Pop)
      * @param _numberTickets number of tickets to buy
      */
     function calculateTotalPriceForBulkTickets(
@@ -674,7 +675,7 @@ contract PopLottery is ReentrancyGuard, IPopLottery, Ownable {
 
         // Confirm that the two transformed numbers are the same, if not throw
         if (transformedWinningNumber == transformedUserNumber) {
-            return _lotteries[_lotteryId].cakePerBracket[_bracket];
+            return _lotteries[_lotteryId].PopPerBracket[_bracket];
         } else {
             return 0;
         }

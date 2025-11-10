@@ -35,9 +35,8 @@ contract MockRandomNumberGenerator is IRandomNumberGenerator, Ownable {
 
     /**
      * @notice Request randomness from a user-provided seed
-     * @param _seed: seed provided by the PancakeSwap lottery
      */
-    function getRandomNumber(uint256 _seed) external override {
+    function getRandomNumber() external override {
         require(msg.sender == pancakeSwapLottery, "Only PancakeSwapLottery");
         fulfillRandomness(0, nextRandomResult);
     }

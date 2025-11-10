@@ -11,7 +11,7 @@ import "./interfaces/IPopLottery.sol";
 contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, Ownable {
     using SafeERC20 for IERC20;
 
-    address public pancakeSwapLottery;
+    address public popLottery;
     bytes32 public keyHash;
     bytes32 public latestRequestId;
     uint32 public randomResult;
@@ -32,14 +32,12 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, Ownab
 
     /**
      * @notice Request randomness from a user-provided seed
-     * @param _seed: seed provided by the PancakeSwap lottery
      */
-    function getRandomNumber(uint256 _seed) external override {
-        require(msg.sender == pancakeSwapLottery, "Only PancakeSwapLottery");
+    function getRandomNumber() external override {
+        require(msg.sender == popLottery, "Only PancakeSwapLottery");
         require(keyHash != bytes32(0), "Must have valid key hash");
         require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK tokens");
 
-        // latestRequestId = requestRandomness(keyHash, fee, _seed);
         latestRequestId = requestRandomness(keyHash, fee);
     }
 
@@ -64,7 +62,7 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, Ownab
      * @param _pancakeSwapLottery: address of the PancakeSwap lottery
      */
     function setLotteryAddress(address _pancakeSwapLottery) external onlyOwner {
-        pancakeSwapLottery = _pancakeSwapLottery;
+        popLottery = _pancakeSwapLottery;
     }
 
     /**
@@ -97,6 +95,6 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, Ownab
     function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
         require(latestRequestId == requestId, "Wrong requestId");
         randomResult = uint32(1000000 + (randomness % 1000000));
-        latestLotteryId = IPopLottery(pancakeSwapLottery).viewCurrentLotteryId();
+        latestLotteryId = IPopLottery(popLottery).viewCurrentLotteryId();
     }
 }
