@@ -6,7 +6,7 @@ import "../interfaces/IRandomNumberGenerator.sol";
 import "../interfaces/IPoqLottery.sol";
 
 contract MockRandomNumberGenerator is IRandomNumberGenerator, Ownable {
-    address public pancakeSwapLottery;
+    address public poqLottery;
     uint32 public randomResult;
     uint256 public nextRandomResult;
     uint256 public latestLotteryId;
@@ -18,15 +18,15 @@ contract MockRandomNumberGenerator is IRandomNumberGenerator, Ownable {
     constructor() Ownable(msg.sender) {}
 
     /**
-     * @notice Set the address for the PancakeSwapLottery
-     * @param _pancakeSwapLottery: address of the PancakeSwap lottery
+     * @notice Set the address for the PoqLottery
+     * @param _poqLottery: address of the Poq lottery
      */
-    function setLotteryAddress(address _pancakeSwapLottery) external onlyOwner {
-        pancakeSwapLottery = _pancakeSwapLottery;
+    function setLotteryAddress(address _poqLottery) external onlyOwner {
+        poqLottery = _poqLottery;
     }
 
     /**
-     * @notice Set the address for the PancakeSwapLottery
+     * @notice Set the address for the PoqLottery
      * @param _nextRandomResult: next random result
      */
     function setNextRandomResult(uint256 _nextRandomResult) external onlyOwner {
@@ -37,7 +37,7 @@ contract MockRandomNumberGenerator is IRandomNumberGenerator, Ownable {
      * @notice Request randomness from a user-provided seed
      */
     function getRandomNumber() external override {
-        require(msg.sender == pancakeSwapLottery, "Only PancakeSwapLottery");
+        require(msg.sender == poqLottery, "Only PoqLottery");
         fulfillRandomness(0, nextRandomResult);
     }
 
@@ -45,7 +45,7 @@ contract MockRandomNumberGenerator is IRandomNumberGenerator, Ownable {
      * @notice Change latest lotteryId to currentLotteryId
      */
     function changeLatestLotteryId() external {
-        latestLotteryId = IPoqLottery(pancakeSwapLottery).viewCurrentLotteryId();
+        latestLotteryId = IPoqLottery(poqLottery).viewCurrentLotteryId();
     }
 
     /**
@@ -67,5 +67,7 @@ contract MockRandomNumberGenerator is IRandomNumberGenerator, Ownable {
      */
     function fulfillRandomness(bytes32 requestId, uint256 randomness) internal {
         randomResult = uint32(1000000 + (randomness % 1000000));
+		requestId=requestId;// avoid warning
+		latestLotteryId = IPoqLottery(poqLottery).viewCurrentLotteryId();
     }
 }

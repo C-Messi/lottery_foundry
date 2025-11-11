@@ -80,7 +80,7 @@ contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
 
     modifier notContract() {
         require(!_isContract(msg.sender), "Contract not allowed");
-        require(msg.sender == tx.origin, "Proxy contract not allowed");
+        // require(msg.sender == tx.origin, "Proxy contract not allowed");
         _;
     }
 
@@ -384,14 +384,14 @@ contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
      * @notice Start the lottery
      * @dev Callable by operator
      * @param _endTime: endTime of the lottery
-     * @param _priceTicketInCake: price of a ticket in Poq
+     * @param _priceTicketInPoq: price of a ticket in Poq
      * @param _discountDivisor: the divisor to calculate the discount magnitude for bulks
      * @param _rewardsBreakdown: breakdown of rewards per bracket (must sum to 10,000)
      * @param _treasuryFee: treasury fee (10,000 = 100%, 100 = 1%)
      */
     function startLottery(
         uint256 _endTime,
-        uint256 _priceTicketInCake,
+        uint256 _priceTicketInPoq,
         uint256 _discountDivisor,
         uint256[6] calldata _rewardsBreakdown,
         uint256 _treasuryFee
@@ -407,7 +407,7 @@ contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
         );
 
         require(
-            (_priceTicketInCake >= minPriceTicketInCake) && (_priceTicketInCake <= maxPriceTicketInCake),
+            (_priceTicketInPoq >= minPriceTicketInCake) && (_priceTicketInPoq <= maxPriceTicketInCake),
             "Outside of limits"
         );
 
@@ -430,7 +430,7 @@ contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
             status: Status.Open,
             startTime: block.timestamp,
             endTime: _endTime,
-            priceTicketInPoq: _priceTicketInCake,
+            priceTicketInPoq: _priceTicketInPoq,
             discountDivisor: _discountDivisor,
             rewardsBreakdown: _rewardsBreakdown,
             treasuryFee: _treasuryFee,
@@ -446,7 +446,7 @@ contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
             currentLotteryId,
             block.timestamp,
             _endTime,
-            _priceTicketInCake,
+            _priceTicketInPoq,
             currentTicketId,
             pendingInjectionNextLottery
         );
