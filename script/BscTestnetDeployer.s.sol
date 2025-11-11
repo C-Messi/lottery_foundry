@@ -8,8 +8,8 @@ import {MockERC20} from "../src/utils/MockERC20.sol";
 import {RandomNumberGenerator} from "../src/RandomNumberGenerator.sol";
 
 contract BscTestnetDeployer is Script {
-    PoqLottery public popLottery;
-    MockERC20 public popToken;
+    PoqLottery public poqLottery;
+    MockERC20 public poqToken;
     RandomNumberGenerator public randomNumberGenerator;
 
     address public operatorAddress;
@@ -17,9 +17,9 @@ contract BscTestnetDeployer is Script {
     address public injectorAddress;
 
     // BSC Testnet Chainlink VRF details
-    address public constant CHAINLINK_VRF_COORDINATOR = 0x747973a5A2a4Ae1D3a8fDF5479f1514F65Db9C31; // BSC Testnet VRF Coordinator
-    address public constant CHAINLINK_LINK_TOKEN = 0x404460C6A5EdE2D891e8297795264fDe62ADBB75; // BSC Testnet LINK token
-    bytes32 public constant CHAINLINK_KEY_HASH = 0xd4b871644c0c4244e47388fb0cbb4aefb7d3a1a9b805c3d52a63a5e9aceb74a3; // BSC Testnet key hash
+    address public constant CHAINLINK_VRF_COORDINATOR = 0xa555fC018435bef5A13C6c6870a9d4C11DEC329C; // BSC Testnet VRF Coordinator
+    address public constant CHAINLINK_LINK_TOKEN = 0x84b9B910527Ad5C03A9Ca831909E21e236EA7b06; // BSC Testnet LINK token
+    bytes32 public constant CHAINLINK_KEY_HASH = 0xcaf3c3727e033261d383b315559476f48034c13b18f8cafed4d871abe5049186; // BSC Testnet key hash
     uint256 public constant CHAINLINK_FEE = 0.1 * 10 ** 18; // BSC Testnet VRF fee
 
     function setUp() public {}
@@ -29,19 +29,19 @@ contract BscTestnetDeployer is Script {
         try vm.envAddress("OPERATOR_ADDRESS") returns (address operatorEnv) {
             operatorAddress = operatorEnv;
         } catch {
-            operatorAddress = vm.addr(1); // Default fallback
+            revert();
         }
         
         try vm.envAddress("TREASURY_ADDRESS") returns (address treasuryEnv) {
             treasuryAddress = treasuryEnv;
         } catch {
-            treasuryAddress = vm.addr(2); // Default fallback
+            revert();
         }
         
         try vm.envAddress("INJECTOR_ADDRESS") returns (address injectorEnv) {
             injectorAddress = injectorEnv;
         } catch {
-            injectorAddress = vm.addr(3); // Default fallback
+            revert();
         }
         
         // remind: we're on BSC Testnet
@@ -49,10 +49,10 @@ contract BscTestnetDeployer is Script {
 
         vm.startBroadcast();
 
-        // Deploy POP Token (for testing; in production, use the real POP token)
-        console.log("Deploying POP Token...");
-        popToken = new MockERC20("Pop Token", "POP", 100_000_000 * 1e18);
-        console.log("POP Token deployed at: %s", address(popToken));
+        // Deploy POQ Token (for testing; in production, use the real POQ token)
+        console.log("Deploying POQ Token...");
+        poqToken = new MockERC20("Pop Token", "POQ", 100_000_000 * 1e18);
+        console.log("POQ Token deployed at: %s", address(poqToken));
 
         // Deploy Random Number Generator with real Chainlink VRF
         console.log("Deploying Random Number Generator with Chainlink VRF...");
@@ -61,12 +61,12 @@ contract BscTestnetDeployer is Script {
 
         // Deploy PoqLottery contract
         console.log("Deploying PoqLottery contract...");
-        popLottery = new PoqLottery(address(popToken), address(randomNumberGenerator));
-        console.log("PoqLottery deployed at: %s", address(popLottery));
+        poqLottery = new PoqLottery(address(poqToken), address(randomNumberGenerator));
+        console.log("PoqLottery deployed at: %s", address(poqLottery));
 
         // Set operator, treasury, and injector addresses
         console.log("Setting operator, treasury, and injector addresses...");
-        popLottery.setOperatorAndTreasuryAndInjectorAddresses(
+        poqLottery.setOperatorAndTreasuryAndInjectorAddresses(
             operatorAddress,
             treasuryAddress,
             injectorAddress
@@ -75,7 +75,7 @@ contract BscTestnetDeployer is Script {
 
         // Set the lottery address in the RandomNumberGenerator contract
         console.log("Setting lottery address in Random Number Generator...");
-        randomNumberGenerator.setLotteryAddress(address(popLottery));
+        randomNumberGenerator.setLotteryAddress(address(poqLottery));
         console.log("Lottery address set in Random Number Generator");
 
         // Set VRF parameters
@@ -89,9 +89,9 @@ contract BscTestnetDeployer is Script {
         console.log("=== Deployment Information ===");
         console.log("Chain ID: %s", block.chainid);
         console.log("Deployer Address: %s", msg.sender);
-        console.log("POP Token Address: %s", address(popToken));
+        console.log("POQ Token Address: %s", address(poqToken));
         console.log("Random Number Generator Address: %s", address(randomNumberGenerator));
-        console.log("PoqLottery Address: %s", address(popLottery));
+        console.log("PoqLottery Address: %s", address(poqLottery));
         console.log("Operator Address: %s", operatorAddress);
         console.log("Treasury Address: %s", treasuryAddress);
         console.log("Injector Address: %s", injectorAddress);
@@ -104,10 +104,10 @@ contract BscTestnetDeployer is Script {
         // Additional configuration options (commented out for production, can be uncommented for testing)
         /*
         // Example: Set custom ticket price limits
-        popLottery.setMinAndMaxTicketPriceInCake(0.001 ether, 10 ether);
+        poqLottery.setMinAndMaxTicketPriceInCake(0.001 ether, 10 ether);
 
         // Example: Set max tickets per buy
-        popLottery.setMaxNumberTicketsPerBuy(100);
+        poqLottery.setMaxNumberTicketsPerBuy(100);
         */
 
         vm.stopBroadcast();

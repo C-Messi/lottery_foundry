@@ -7,7 +7,7 @@ import {PoqLottery} from "../src/PoqLottery.sol";
 import {MockERC20} from "../src/utils/MockERC20.sol";
 import {MockRandomNumberGenerator} from "../src/utils/MockRandomNumberGenerator.sol";
 
-contract PopLotteryTest is Test {
+contract PoqLotteryTest is Test {
     PoqLottery public poqLottery;
     MockERC20 public poqToken;
     MockRandomNumberGenerator public mockRandomGenerator;
