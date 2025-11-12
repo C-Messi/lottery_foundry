@@ -6,3 +6,10 @@ forge script script/BscTestnetDeployer.s.sol:BscTestnetDeployer \
   --etherscan-api-key $ETHERSCAN_API_KEY \
   --broadcast \
   -vvvv
+
+forge verify-contract \
+  $VERIFY_CONTRACT_ADDRESS \
+  $VERIFY_CONTRACT_TEMPLATE \
+  --verifier etherscan \
+  --chain-id 97 \
+  --etherscan-api-key $ETHERSCAN_API_KEY
