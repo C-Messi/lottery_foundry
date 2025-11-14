@@ -34,7 +34,7 @@ contract RandomNumberGenerator is VRFConsumerBase, IRandomNumberGenerator, Ownab
      * @notice Request randomness from a user-provided seed
      */
     function getRandomNumber() external override {
-        require(msg.sender == poqLottery, "Only PancakeSwapLottery");
+        require(msg.sender == poqLottery, "Only PoqLottery");
         require(keyHash != bytes32(0), "Must have valid key hash");
         require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK tokens");
 

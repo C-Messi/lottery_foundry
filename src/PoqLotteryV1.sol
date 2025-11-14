@@ -5,14 +5,14 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./interfaces/IRandomNumberGenerator.sol";
-import "./interfaces/IPoqLottery.sol";
+import "./interfaces/IPoqDrandGeneratorV1.sol";
+import "./interfaces/IPoqLotteryV1.sol";
 
 /** @title Poq Lottery.
  * @notice It is a contract for a lottery system using
  * randomness provided externally.
  */
-contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
+contract PoqLotteryV1 is ReentrancyGuard, IPoqLotteryV1, Ownable {
     using SafeERC20 for IERC20;
 
     address public injectorAddress;
@@ -35,7 +35,12 @@ contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
     uint256 public constant MAX_TREASURY_FEE = 3000; // 30%
 
     IERC20 public poqToken;
-    IRandomNumberGenerator public randomGenerator;
+    IPoqDrandGeneratorV1 public randomGenerator;
+
+	// Points 
+	uint256 public priceTicketInPoint = 100;
+	uint256 public rewardInviterPoint = 100;
+	uint256 public rewardInviterNumTicket = 10;
 
     enum Status {
         Pending,
@@ -78,6 +83,10 @@ contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
     // Keep track of user ticket ids for a given lotteryId
     mapping(address => mapping(uint256 => uint256[])) private _userTicketIdsPerLotteryId;
 
+	// Point system
+	mapping(address => uint256) public pointBalance;
+	mapping(address => address) public inviter;
+
     modifier notContract() {
         require(!_isContract(msg.sender), "Contract not allowed");
         // require(msg.sender == tx.origin, "Proxy contract not allowed");
@@ -111,6 +120,10 @@ contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
     event TicketsPurchase(address indexed buyer, uint256 indexed lotteryId, uint256 numberTickets);
     event TicketsClaim(address indexed claimer, uint256 amount, uint256 indexed lotteryId, uint256 numberTickets);
 
+	// Point Event
+	event NewInvite(address newUser,address inviter);
+	event TicketsPurchaseByPoints(address indexed buyer, uint256 indexed lotteryId, uint256 numberTickets);
+
     /**
      * @notice Constructor
      * @dev RandomNumberGenerator must be deployed prior to this contract
@@ -119,7 +132,7 @@ contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
      */
     constructor(address _popTokenAddress, address _randomGeneratorAddress) Ownable(msg.sender) {
         poqToken = IERC20(_popTokenAddress);
-        randomGenerator = IRandomNumberGenerator(_randomGeneratorAddress);
+        randomGenerator = IPoqDrandGeneratorV1(_randomGeneratorAddress);
 
         // Initializes a mapping
         _bracketCalculator[0] = 1;
@@ -129,6 +142,57 @@ contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
         _bracketCalculator[4] = 11111;
         _bracketCalculator[5] = 111111;
     }
+
+	/**
+     * @notice Buy tickets for the current lottery by Points
+     * @param _lotteryId: lotteryId
+     * @param _ticketNumbers: array of ticket numbers between 1,000,000 and 1,999,999
+     * @dev Callable by users
+     */
+    function buyTicketsByPoints(uint256 _lotteryId, uint32[] calldata _ticketNumbers) 
+		external
+        override
+        notContract
+        nonReentrant
+	{
+		require(_ticketNumbers.length != 0, "No ticket specified");
+        require(_ticketNumbers.length <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
+
+        require(_lotteries[_lotteryId].status == Status.Open, "Lottery is not open");
+        require(block.timestamp < _lotteries[_lotteryId].endTime, "Lottery is over");
+
+        // Calculate number of point need to be comsumed
+        uint256 amountPointToTransfer = _ticketNumbers.length * priceTicketInPoint;
+		require(amountPointToTransfer <= pointBalance[msg.sender], "Points are not enough");
+
+        // consume points
+        pointBalance[msg.sender] -= amountPointToTransfer;
+
+		// Inviter reward
+		pointBalance[inviter[msg.sender]] += _ticketNumbers.length / rewardInviterNumTicket * rewardInviterPoint;
+
+        for (uint256 i = 0; i < _ticketNumbers.length; i++) {
+            uint32 thisTicketNumber = _ticketNumbers[i];
+
+            require((thisTicketNumber >= 1000000) && (thisTicketNumber <= 1999999), "Outside range");
+
+            _numberTicketsPerLotteryId[_lotteryId][1 + (thisTicketNumber % 10)]++;
+            _numberTicketsPerLotteryId[_lotteryId][11 + (thisTicketNumber % 100)]++;
+            _numberTicketsPerLotteryId[_lotteryId][111 + (thisTicketNumber % 1000)]++;
+            _numberTicketsPerLotteryId[_lotteryId][1111 + (thisTicketNumber % 10000)]++;
+            _numberTicketsPerLotteryId[_lotteryId][11111 + (thisTicketNumber % 100000)]++;
+            _numberTicketsPerLotteryId[_lotteryId][111111 + (thisTicketNumber % 1000000)]++;
+
+            _userTicketIdsPerLotteryId[msg.sender][_lotteryId].push(currentTicketId);
+
+            _tickets[currentTicketId] = Ticket({number: thisTicketNumber, owner: msg.sender});
+
+            // Increase lottery ticket number
+            currentTicketId++;
+        }
+
+        emit TicketsPurchaseByPoints(msg.sender, _lotteryId, _ticketNumbers.length);
+	}
 
     /**
      * @notice Buy tickets for the current lottery
@@ -149,17 +213,20 @@ contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
         require(block.timestamp < _lotteries[_lotteryId].endTime, "Lottery is over");
 
         // Calculate number of Poq to this contract
-        uint256 amountPopToTransfer = _calculateTotalPriceForBulkTickets(
+        uint256 amountPointToTransfer = _calculateTotalPriceForBulkTickets(
             _lotteries[_lotteryId].discountDivisor,
             _lotteries[_lotteryId].priceTicketInPoq,
             _ticketNumbers.length
         );
 
         // Transfer Poq tokens to this contract
-        poqToken.safeTransferFrom(address(msg.sender), address(this), amountPopToTransfer);
+        poqToken.safeTransferFrom(address(msg.sender), address(this), amountPointToTransfer);
+
+		// Inviter reward
+		pointBalance[inviter[msg.sender]] += _ticketNumbers.length / rewardInviterNumTicket * rewardInviterPoint;
 
         // Increment the total amount collected for the lottery round
-        _lotteries[_lotteryId].amountCollectedInPoq += amountPopToTransfer;
+        _lotteries[_lotteryId].amountCollectedInPoq += amountPointToTransfer;
 
         for (uint256 i = 0; i < _ticketNumbers.length; i++) {
             uint32 thisTicketNumber = _ticketNumbers[i];
@@ -252,7 +319,7 @@ contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
 
         // Request a random number from the generator based on a seed
         // randomGenerator.getRandomNumber(uint256(keccak256(abi.encodePacked(_lotteryId, currentTicketId))));
-        randomGenerator.getRandomNumber();
+        randomGenerator.getRandomNumber(_lotteries[_lotteryId].endTime);
 
         _lotteries[_lotteryId].status = Status.Close;
 
@@ -354,13 +421,7 @@ contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
             "Lottery not in claimable"
         );
 
-        // Request a random number from the generator based on a seed
-        IRandomNumberGenerator(_randomGeneratorAddress).getRandomNumber();
-
-        // Calculate the finalNumber based on the randomResult generated by ChainLink's fallback
-        IRandomNumberGenerator(_randomGeneratorAddress).viewRandomResult();
-
-        randomGenerator = IRandomNumberGenerator(_randomGeneratorAddress);
+        randomGenerator = IPoqDrandGeneratorV1(_randomGeneratorAddress);
 
         emit NewRandomGenerator(_randomGeneratorAddress);
     }
@@ -467,6 +528,31 @@ contract PoqLottery is ReentrancyGuard, IPoqLottery, Ownable {
 
         emit AdminTokenRecovery(_tokenAddress, _tokenAmount);
     }
+
+	/**
+     * @notice Set points price ticket
+     * @dev Only callable by owner
+	 * @param _priceTicketInPoint: point => ticket 
+	 * @param _rewardInviterPoint: point => inviter
+     * @param _rewardInviterNumTicket: num of tickets trigger reward
+     */
+	function setPointsParam(uint256 _priceTicketInPoint, uint256 _rewardInviterPoint, uint256 _rewardInviterNumTicket) 
+		external 
+		onlyOwner 
+	{
+		priceTicketInPoint=_priceTicketInPoint;
+		rewardInviterPoint=_rewardInviterPoint;
+		rewardInviterNumTicket=_rewardInviterNumTicket;
+	}
+
+	/**
+     * @notice Set inviter of the user
+     */
+	function setInviter(address _inviter) external notContract {
+		require(_inviter != address(0),"Inviter has already initialized");
+		require(_inviter != msg.sender, "Inviter can not be yourself");
+		inviter[msg.sender]=_inviter;
+	}
 
     /**
      * @notice Set Poq price ticket upper/lower limit
