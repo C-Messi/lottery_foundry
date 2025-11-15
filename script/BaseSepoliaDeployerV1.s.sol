@@ -3,14 +3,14 @@ pragma solidity ^0.8.13;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {PoqLottery} from "../src/PoqLottery.sol";
+import {PoqLotteryV1} from "../src/PoqLotteryV1.sol";
 import {MockERC20} from "../src/utils/MockERC20.sol";
-import {MockRandomNumberGenerator} from "../src/utils/MockRandomNumberGenerator.sol";
+import {PoqDrandGeneratorV1} from "../src/random/PoqDrandGeneratorV1.sol";
 
-contract BaseSepoliaDeployer is Script {
-    PoqLottery public poqLottery;
+contract BaseSepoliaDeployerV1 is Script {
+    PoqLotteryV1 public poqLottery;
     MockERC20 public poqToken;
-    MockRandomNumberGenerator public randomNumberGenerator;
+    PoqDrandGeneratorV1 public randomNumberGenerator;
 
     address public operatorAddress;
     address public treasuryAddress;
@@ -50,13 +50,13 @@ contract BaseSepoliaDeployer is Script {
 
         // Deploy Random Number Generator with real Chainlink VRF
         console.log("Deploying Random Number Generator with Chainlink VRF...");
-        randomNumberGenerator = new MockRandomNumberGenerator();
+        randomNumberGenerator = new PoqDrandGeneratorV1();
         console.log("Random Number Generator deployed at: %s", address(randomNumberGenerator));
 
-        // Deploy PoqLottery contract
-        console.log("Deploying PoqLottery contract...");
-        poqLottery = new PoqLottery(address(poqToken), address(randomNumberGenerator));
-        console.log("PoqLottery deployed at: %s", address(poqLottery));
+        // Deploy PoqLotteryV1 contract
+        console.log("Deploying PoqLotteryV1 contract...");
+        poqLottery = new PoqLotteryV1(address(poqToken), address(randomNumberGenerator));
+        console.log("PoqLotteryV1 deployed at: %s", address(poqLottery));
 
         // Set operator, treasury, and injector addresses
         console.log("Setting operator, treasury, and injector addresses...");
@@ -79,20 +79,11 @@ contract BaseSepoliaDeployer is Script {
         console.log("Deployer Address: %s", msg.sender);
         console.log("POQ Token Address: %s", address(poqToken));
         console.log("Random Number Generator Address: %s", address(randomNumberGenerator));
-        console.log("PoqLottery Address: %s", address(poqLottery));
+        console.log("PoqLotteryV1 Address: %s", address(poqLottery));
         console.log("Operator Address: %s", operatorAddress);
         console.log("Treasury Address: %s", treasuryAddress);
         console.log("Injector Address: %s", injectorAddress);
         console.log("==============================");
-
-        // Additional configuration options (commented out for production, can be uncommented for testing)
-        /*
-        // Example: Set custom ticket price limits
-        poqLottery.setMinAndMaxTicketPriceInCake(0.001 ether, 10 ether);
-
-        // Example: Set max tickets per buy
-        poqLottery.setMaxNumberTicketsPerBuy(100);
-        */
 
         vm.stopBroadcast();
     }

@@ -86,6 +86,7 @@ contract PoqLotteryV1 is ReentrancyGuard, IPoqLotteryV1, Ownable {
 	// Point system
 	mapping(address => uint256) public pointBalance;
 	mapping(address => address) public inviter;
+	mapping(address => uint256) public inviteTicketBalance;
 
     modifier notContract() {
         require(!_isContract(msg.sender), "Contract not allowed");
@@ -143,64 +144,14 @@ contract PoqLotteryV1 is ReentrancyGuard, IPoqLotteryV1, Ownable {
         _bracketCalculator[5] = 111111;
     }
 
-	/**
-     * @notice Buy tickets for the current lottery by Points
-     * @param _lotteryId: lotteryId
-     * @param _ticketNumbers: array of ticket numbers between 1,000,000 and 1,999,999
-     * @dev Callable by users
-     */
-    function buyTicketsByPoints(uint256 _lotteryId, uint32[] calldata _ticketNumbers) 
-		external
-        override
-        notContract
-        nonReentrant
-	{
-		require(_ticketNumbers.length != 0, "No ticket specified");
-        require(_ticketNumbers.length <= maxNumberTicketsPerBuyOrClaim, "Too many tickets");
-
-        require(_lotteries[_lotteryId].status == Status.Open, "Lottery is not open");
-        require(block.timestamp < _lotteries[_lotteryId].endTime, "Lottery is over");
-
-        // Calculate number of point need to be comsumed
-        uint256 amountPointToTransfer = _ticketNumbers.length * priceTicketInPoint;
-		require(amountPointToTransfer <= pointBalance[msg.sender], "Points are not enough");
-
-        // consume points
-        pointBalance[msg.sender] -= amountPointToTransfer;
-
-		// Inviter reward
-		pointBalance[inviter[msg.sender]] += _ticketNumbers.length / rewardInviterNumTicket * rewardInviterPoint;
-
-        for (uint256 i = 0; i < _ticketNumbers.length; i++) {
-            uint32 thisTicketNumber = _ticketNumbers[i];
-
-            require((thisTicketNumber >= 1000000) && (thisTicketNumber <= 1999999), "Outside range");
-
-            _numberTicketsPerLotteryId[_lotteryId][1 + (thisTicketNumber % 10)]++;
-            _numberTicketsPerLotteryId[_lotteryId][11 + (thisTicketNumber % 100)]++;
-            _numberTicketsPerLotteryId[_lotteryId][111 + (thisTicketNumber % 1000)]++;
-            _numberTicketsPerLotteryId[_lotteryId][1111 + (thisTicketNumber % 10000)]++;
-            _numberTicketsPerLotteryId[_lotteryId][11111 + (thisTicketNumber % 100000)]++;
-            _numberTicketsPerLotteryId[_lotteryId][111111 + (thisTicketNumber % 1000000)]++;
-
-            _userTicketIdsPerLotteryId[msg.sender][_lotteryId].push(currentTicketId);
-
-            _tickets[currentTicketId] = Ticket({number: thisTicketNumber, owner: msg.sender});
-
-            // Increase lottery ticket number
-            currentTicketId++;
-        }
-
-        emit TicketsPurchaseByPoints(msg.sender, _lotteryId, _ticketNumbers.length);
-	}
-
     /**
      * @notice Buy tickets for the current lottery
      * @param _lotteryId: lotteryId
      * @param _ticketNumbers: array of ticket numbers between 1,000,000 and 1,999,999
+	 * @param isPoint: buy by point or poq
      * @dev Callable by users
      */
-    function buyTickets(uint256 _lotteryId, uint32[] calldata _ticketNumbers)
+    function buyTickets(uint256 _lotteryId, uint32[] calldata _ticketNumbers, bool isPoint)
         external
         override
         notContract
@@ -212,21 +163,34 @@ contract PoqLotteryV1 is ReentrancyGuard, IPoqLotteryV1, Ownable {
         require(_lotteries[_lotteryId].status == Status.Open, "Lottery is not open");
         require(block.timestamp < _lotteries[_lotteryId].endTime, "Lottery is over");
 
-        // Calculate number of Poq to this contract
-        uint256 amountPointToTransfer = _calculateTotalPriceForBulkTickets(
-            _lotteries[_lotteryId].discountDivisor,
-            _lotteries[_lotteryId].priceTicketInPoq,
-            _ticketNumbers.length
-        );
+		if (isPoint) {
+			// Calculate number of point need to be comsumed
+			uint256 amountPointToTransfer = _ticketNumbers.length * priceTicketInPoint;
+			require(amountPointToTransfer <= pointBalance[msg.sender], "Points are not enough");
 
-        // Transfer Poq tokens to this contract
-        poqToken.safeTransferFrom(address(msg.sender), address(this), amountPointToTransfer);
+			// consume points
+			pointBalance[msg.sender] -= amountPointToTransfer;
+		}
+		else {
+			// Calculate number of Poq to this contract
+			uint256 amountPointToTransfer = _calculateTotalPriceForBulkTickets(
+				_lotteries[_lotteryId].discountDivisor,
+				_lotteries[_lotteryId].priceTicketInPoq,
+				_ticketNumbers.length
+			);
+
+			// Transfer Poq tokens to this contract
+			poqToken.safeTransferFrom(address(msg.sender), address(this), amountPointToTransfer);
+
+			// Increment the total amount collected for the lottery round
+			_lotteries[_lotteryId].amountCollectedInPoq += amountPointToTransfer;
+		}
+		
 
 		// Inviter reward
-		pointBalance[inviter[msg.sender]] += _ticketNumbers.length / rewardInviterNumTicket * rewardInviterPoint;
-
-        // Increment the total amount collected for the lottery round
-        _lotteries[_lotteryId].amountCollectedInPoq += amountPointToTransfer;
+		inviteTicketBalance[msg.sender] += _ticketNumbers.length;
+		pointBalance[inviter[msg.sender]] += inviteTicketBalance[msg.sender] / rewardInviterNumTicket * rewardInviterPoint;
+		inviteTicketBalance[msg.sender] %= rewardInviterNumTicket;
 
         for (uint256 i = 0; i < _ticketNumbers.length; i++) {
             uint32 thisTicketNumber = _ticketNumbers[i];
@@ -248,7 +212,12 @@ contract PoqLotteryV1 is ReentrancyGuard, IPoqLotteryV1, Ownable {
             currentTicketId++;
         }
 
-        emit TicketsPurchase(msg.sender, _lotteryId, _ticketNumbers.length);
+		if (isPoint) {
+			emit TicketsPurchaseByPoints(msg.sender, _lotteryId, _ticketNumbers.length);
+		}
+		else {
+			emit TicketsPurchase(msg.sender, _lotteryId, _ticketNumbers.length);
+		}
     }
 
     /**

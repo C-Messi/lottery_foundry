@@ -125,7 +125,7 @@ contract PoqLotteryV1Test is Test {
 		for (uint i=0; i < 10; i++) {
 			ticketNumbers[i] = 1234567;
 		}
-		poqLottery.buyTickets(1, ticketNumbers);
+		poqLottery.buyTickets(1, ticketNumbers, false);
 		vm.stopPrank();
 		
 		// Verify tickets were purchased
@@ -157,7 +157,7 @@ contract PoqLotteryV1Test is Test {
 		for (uint i=0; i < 100; i++) {
 			ticketNumbers[i] = 1234567;
 		}
-		poqLottery.buyTickets(1, ticketNumbers);
+		poqLottery.buyTickets(1, ticketNumbers, false);
 		vm.stopPrank();
 
 		// Verify points reward
@@ -169,7 +169,7 @@ contract PoqLotteryV1Test is Test {
 		for (uint i=0; i < 10; i++) {
 			ticketNumbers1[i] = 1234567;
 		}
-		poqLottery.buyTicketsByPoints(1, ticketNumbers1);
+		poqLottery.buyTickets(1, ticketNumbers1, true);
 		vm.stopPrank();
 
 		// Verify points reward
@@ -178,8 +178,8 @@ contract PoqLotteryV1Test is Test {
 		vm.startPrank(user3);
 		poqLottery.setInviter(user1);
 		uint32[] memory ticketNumbers2 = new uint32[](1);
-		ticketNumbers2[0]=1234567;
-		poqLottery.buyTicketsByPoints(1, ticketNumbers2);
+		ticketNumbers2[0] = 1234567;
+		poqLottery.buyTickets(1, ticketNumbers2, true);
 		vm.stopPrank();
 		
 		assertEq(poqLottery.pointBalance(user3),0);
@@ -207,7 +207,7 @@ contract PoqLotteryV1Test is Test {
 			for (uint i=0; i < 10; i++) {
 				ticketNumbers[i] = 1234567;
 			}
-			poqLottery.buyTickets(1, ticketNumbers);
+			poqLottery.buyTickets(1, ticketNumbers, false);
 		}
 		vm.stopPrank();
 
@@ -222,7 +222,7 @@ contract PoqLotteryV1Test is Test {
 			for (uint i=0; i < 1; i++) {
 				ticketNumbers[0] = 1705460;
 			}
-			poqLottery.buyTicketsByPoints(1, ticketNumbers);
+			poqLottery.buyTickets(1, ticketNumbers, true);
 		}
 		
 		vm.stopPrank();
