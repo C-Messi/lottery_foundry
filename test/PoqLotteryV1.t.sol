@@ -79,6 +79,11 @@ contract PoqLotteryV1Test is Test {
 		randomGenerator.addRandDomData(5589667,0x2658f16e75bcb3c6d009e6291b3f40058900091592f6012c4aa0f117b4385f74);
 
 		assertEq(randomGenerator.latestRandomId(),1);
+		PoqDrandGeneratorV1.RandomData memory randomData=randomGenerator.viewRandomData(1);
+
+		console.log("round: ",randomData.round);
+		console.logBytes32(randomData.randomness);
+		console.log("random result: ", uint32(1000000 + (randomData.randomResult % 1000000)));
 	}
 
 	function test_set_inviter() public {
@@ -180,6 +185,99 @@ contract PoqLotteryV1Test is Test {
 		assertEq(poqLottery.pointBalance(user3),0);
 	}
 
-	function all_flow() public {
+	function test_all_flow() public {
+		vm.startPrank(operator);
+		poqLottery.startLottery(
+			block.timestamp + timeGap,// end time
+			priceTicketInPop, // price
+			discountDivisor,// discount
+			rewardsBreakdownFixed, // reward propotion
+			treasuryFee // fee
+    	);
+		vm.stopPrank();
+		
+		vm.startPrank(user1);
+		// Approve the PoqLottery contract to spend user's tokens
+		poqToken.approve(address(poqLottery), 50 ether);
+		// set inviter
+		poqLottery.setInviter(user2);
+		// Buy tickets
+		{
+			uint32[] memory ticketNumbers = new uint32[](10);
+			for (uint i=0; i < 10; i++) {
+				ticketNumbers[i] = 1234567;
+			}
+			poqLottery.buyTickets(1, ticketNumbers);
+		}
+		vm.stopPrank();
+
+		// Verify points reward
+		assertEq(poqLottery.pointBalance(user2),poqLottery.rewardInviterPoint());
+
+		// buy by points
+		vm.startPrank(user2);
+		poqLottery.setInviter(user3);
+		{
+			uint32[] memory ticketNumbers = new uint32[](1);
+			for (uint i=0; i < 1; i++) {
+				ticketNumbers[0] = 1705460;
+			}
+			poqLottery.buyTicketsByPoints(1, ticketNumbers);
+		}
+		
+		vm.stopPrank();
+
+		// set Drand data
+		vm.prank(owner);
+		vm.warp(block.timestamp + timeGap + 1 minutes);
+		randomGenerator.addRandDomData(5589667,0x2658f16e75bcb3c6d009e6291b3f40058900091592f6012c4aa0f117b4385f74);
+		
+		// Close the lottery
+		vm.warp(block.timestamp + timeGap + 2 minutes);
+		vm.prank(operator);
+		poqLottery.closeLottery(1);
+
+		assertEq(randomGenerator.randomResult(),1705460);
+
+		console.log("All prize pool: ",poqToken.balanceOf(address(poqLottery)));
+
+		// Draw final number and make claimable
+		vm.prank(operator);
+		poqLottery.drawFinalNumberAndMakeLotteryClaimable(1, false);
+
+		uint256 dif1;
+		uint256 dif2;
+
+		// Claim
+		{
+			uint256[] memory ticketIds = new uint256[](1);
+			uint32[] memory brackets = new uint32[](1);
+			ticketIds[0] = 0; // ticket ID
+			brackets[0] = 0; // Highest bracket
+			dif1=poqToken.balanceOf(user1);
+
+			vm.prank(user1);
+			vm.expectRevert();
+			poqLottery.claimTickets(1, ticketIds, brackets); // can not match
+
+			dif1=poqToken.balanceOf(user1)-dif1;
+		}
+
+		{
+			uint256[] memory ticketIds = new uint256[](1);
+			uint32[] memory brackets = new uint32[](1);
+			ticketIds[0] = 10; // ticket ID
+			brackets[0] = 5; // Highest bracket
+			dif2=poqToken.balanceOf(user2);
+
+			vm.prank(user2);
+			poqLottery.claimTickets(1, ticketIds, brackets); // can not match
+
+			dif2=poqToken.balanceOf(user2)-dif2;
+		}
+
+		console.log("user1 get: ",dif1);
+		console.log("user2 get: ",dif2);
+		console.log("Protocol get: ",poqToken.balanceOf(treasury));
 	}
 }

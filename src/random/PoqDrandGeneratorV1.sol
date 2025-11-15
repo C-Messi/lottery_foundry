@@ -35,7 +35,7 @@ contract PoqDrandGeneratorV1 is IPoqDrandGeneratorV1, Ownable {
 
 		latestRandomId++;
 
-		allRound[latestLotteryId]=RandomData({
+		allRound[latestRandomId]=RandomData({
 			round: _round,
 			randomness: _randomness,
 			randomResult: uint256(_randomness),
@@ -78,6 +78,14 @@ contract PoqDrandGeneratorV1 is IPoqDrandGeneratorV1, Ownable {
      */
     function withdrawTokens(address _tokenAddress, uint256 _tokenAmount) external onlyOwner {
         IERC20(_tokenAddress).safeTransfer(address(msg.sender), _tokenAmount);
+    }
+
+	/**
+     * @notice View random data 
+     * @param _randomId: randomData id
+     */
+    function viewRandomData(uint256 _randomId) external view returns (RandomData memory) {
+        return allRound[_randomId];
     }
 
     /**
