@@ -7,6 +7,13 @@ forge script script/BscTestnetDeployer.s.sol:BscTestnetDeployer \
   --broadcast \
   -vvvv
 
+forge script script/BaseSepoliaDeployerV2.s.sol:BaseSepoliaDeployerV2 \
+  --rpc-url $BASE_SEPOLIA_NODE_URL \
+  --private-key $BASE_SEPOLIA_PRIVATE_KEY \
+  --chain-id 84532 \
+  --broadcast \
+  -vvvv
+
 forge script script/BaseSepoliaDeployerV1.s.sol:BaseSepoliaDeployerV1 \
   --rpc-url $BASE_SEPOLIA_NODE_URL \
   --private-key $BASE_SEPOLIA_PRIVATE_KEY \
