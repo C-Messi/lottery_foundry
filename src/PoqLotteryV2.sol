@@ -6,13 +6,13 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IPoqDrandGeneratorV2.sol";
-import "./interfaces/IPoqLotteryV1.sol";
+import "./interfaces/IPoqLotteryV2.sol";
 
 /** @title Poq Lottery.
  * @notice It is a contract for a lottery system using
  * randomness provided externally.
  */
-contract PoqLotteryV2 is ReentrancyGuard, IPoqLotteryV1, Ownable {
+contract PoqLotteryV2 is ReentrancyGuard, IPoqLotteryV2, Ownable {
     using SafeERC20 for IERC20;
 
     address public injectorAddress;
@@ -593,6 +593,10 @@ contract PoqLotteryV2 is ReentrancyGuard, IPoqLotteryV1, Ownable {
      */
     function viewCurrentLotteryId() external view override returns (uint256) {
         return currentLotteryId;
+    }
+
+	function viewCurrentLotteryStartTime() external view override returns (uint256) {
+        return _lotteries[currentLotteryId].startTime;
     }
 
     /**

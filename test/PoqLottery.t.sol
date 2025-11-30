@@ -113,8 +113,11 @@ contract PoqLotteryTest is Test {
 		ticketNumbers[0] = 1234567;
 		ticketNumbers[1] = 1357986;
 		
-		poqLottery.buyTickets(1, ticketNumbers);
 		vm.stopPrank();
+
+		vm.prank(user1);
+		poqLottery.buyTickets(1, ticketNumbers);
+		
 
 		assertLe(poqToken.balanceOf(user1), bal1);
 		

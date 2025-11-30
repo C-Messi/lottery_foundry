@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../interfaces/IPoqDrandGeneratorV2.sol";
-import "../interfaces/IPoqLotteryV1.sol";
+import "../interfaces/IPoqLotteryV2.sol";
 import "../interfaces/IDrandBeacon.sol";
 
 contract PoqDrandGeneratorV2 is IPoqDrandGeneratorV2, Ownable {
@@ -78,6 +78,8 @@ contract PoqDrandGeneratorV2 is IPoqDrandGeneratorV2, Ownable {
      * @notice transition result and set flag
      */
     function fulfillRandomness(uint256 round, uint256[2] memory signature) external {
+		require(IPoqLotteryV2(poqLottery).viewCurrentLotteryStartTime() < requestTimeStamp, "Can not use the randomness of last round ");
+		
 		// make sure it is the round closest to the end time
 		uint256 delta = requestTimeStamp - 1727521075;
 		uint256 _round = (delta / 3) + ((delta % 3) > 0 ? 1 : 0);
@@ -89,6 +91,6 @@ contract PoqDrandGeneratorV2 is IPoqDrandGeneratorV2, Ownable {
 		// set result
 		uint256 randomness = uint256(keccak256(abi.encode(signature)));
         randomResult = uint32(1000000 + (randomness % 1000000));
-        latestLotteryId = IPoqLotteryV1(poqLottery).viewCurrentLotteryId();
+        latestLotteryId = IPoqLotteryV2(poqLottery).viewCurrentLotteryId();
     }
 }
