@@ -1,3 +1,5 @@
+# Deploy contract
+
 forge script script/BscTestnetDeployer.s.sol:BscTestnetDeployer \
   --rpc-url $BSC_TESTNET_NODE_URL \
   --private-key $BSC_TESTNET_PRIVATE_KEY \
@@ -21,6 +23,13 @@ forge script script/MonadTestnetDeployerV2.s.sol:MonadTestnetDeployerV2 \
   --broadcast \
   -vvvv
 
+forge script script/PopChainDeployerV2.s.sol:PopChainDeployerV2 \
+  --rpc-url $POP_CHAIN_NODE_URL \
+  --private-key $POP_CHAIN_PRIVATE_KEY \
+  --chain-id 7257 \
+  --broadcast \
+  -vvvv
+
 forge script script/BaseSepoliaDeployerV1.s.sol:BaseSepoliaDeployerV1 \
   --rpc-url $BASE_SEPOLIA_NODE_URL \
   --private-key $BASE_SEPOLIA_PRIVATE_KEY \
@@ -29,6 +38,9 @@ forge script script/BaseSepoliaDeployerV1.s.sol:BaseSepoliaDeployerV1 \
   --etherscan-api-key $ETHERSCAN_API_KEY \
   --broadcast \
   -vvvv
+
+
+# Verify Contract
 
 forge verify-contract \
   $VERIFY_CONTRACT_ADDRESS \

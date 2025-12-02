@@ -45,8 +45,8 @@ contract MonadTestnetDeployerV2 is Script {
             revert();
         }
         
-        // remind: we're on Base Sepolia
-		console.log("Deploying to Base Sepolia :");
+        // remind: we're on Monad testnet
+		console.log("Deploying to Monad testnet :");
 
         vm.startBroadcast();
 
