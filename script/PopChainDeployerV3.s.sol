@@ -6,7 +6,7 @@ import {console} from "forge-std/console.sol";
 import {PoqLotteryV3} from "../src/PoqLotteryV3.sol";
 import {PoqDrandGeneratorV2} from "../src/random/PoqDrandGeneratorV2.sol";
 
-contract PopChainDeployerV2 is Script {
+contract PopChainDeployerV3 is Script {
     PoqLotteryV3 public poqLottery;
     PoqDrandGeneratorV2 public randomNumberGenerator;
 

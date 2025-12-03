@@ -16,6 +16,13 @@ forge script script/BaseSepoliaDeployerV2.s.sol:BaseSepoliaDeployerV2 \
   --broadcast \
   -vvvv
 
+forge script script/BaseSepoliaDeployerV3.s.sol:BaseSepoliaDeployerV3 \
+  --rpc-url $BASE_SEPOLIA_NODE_URL \
+  --private-key $BASE_SEPOLIA_PRIVATE_KEY \
+  --chain-id 84532 \
+  --broadcast \
+  -vvvv
+
 forge script script/MonadTestnetDeployerV2.s.sol:MonadTestnetDeployerV2 \
   --rpc-url $MONAD_TESTNET_NODE_URL \
   --private-key $MONAD_TESTNET_PRIVATE_KEY \
