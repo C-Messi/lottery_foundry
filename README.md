@@ -4,11 +4,6 @@
 
 The Pop Lottery enables users to purchase tickets, participate in lottery rounds, and claim prizes based on digit matching using Anyrand(https://github.com/frogworksio/anyrand) VRF for secure random number generation.
 
-## Documentation
-
-- [Contract Functions](./docs/contract_functions.md) - Detailed documentation of all contract functions and system architecture
-- [Project Documentation](./docs/) - Additional project documentation
-
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
