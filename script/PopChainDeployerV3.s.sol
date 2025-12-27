@@ -44,7 +44,7 @@ contract PopChainDeployerV3 is Script {
 
     function run() public {
         
-        // remind: we're on Base Sepolia
+        // remind: we're on Pop chain
 		console.log("Deploying to Pop CHAIN :");
 
         vm.startBroadcast();

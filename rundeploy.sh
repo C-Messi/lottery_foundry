@@ -30,7 +30,15 @@ forge script script/MonadTestnetDeployerV2.s.sol:MonadTestnetDeployerV2 \
   --broadcast \
   -vvvv
 
-forge script script/PopChainDeployerV2.s.sol:PopChainDeployerV2 \
+# for Pop Chain
+forge script script/PopChainDeployerV3.s.sol:PopChainDeployerV3 \
+  --rpc-url $POP_CHAIN_NODE_URL \
+  --private-key $POP_CHAIN_PRIVATE_KEY \
+  --chain-id 7257 \
+  --broadcast \
+  -vvvv
+
+forge script script/PopChainDeployerTest.s.sol:PopChainDeployerTest \
   --rpc-url $POP_CHAIN_NODE_URL \
   --private-key $POP_CHAIN_PRIVATE_KEY \
   --chain-id 7257 \
