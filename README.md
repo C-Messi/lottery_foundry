@@ -2,7 +2,7 @@
 
 **A lottery smart contract system built on Ethereum using Foundry development framework.**
 
-The Pop Lottery enables users to purchase tickets, participate in lottery rounds, and claim prizes based on digit matching using Chainlink VRF for secure random number generation.
+The Pop Lottery enables users to purchase tickets, participate in lottery rounds, and claim prizes based on digit matching using Anyrand(https://github.com/frogworksio/anyrand) VRF for secure random number generation.
 
 ## Documentation
 
